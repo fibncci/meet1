@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ '添加' if not user else '编辑' }}用户 - 会议室预定系统{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">{{ '添加' if not user else '编辑' }}用户</h4>
+    </div>
+    <div class="card-body">
+        <form method="post" class="needs-validation" novalidate>
+            <div class="mb-3">
+                <label for="username" class="form-label">用户名 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="username" name="username" value="{{ user.username if user else '' }}" required>
+                <div class="invalid-feedback">请输入用户名</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="email" class="form-label">邮箱 <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" id="email" name="email" value="{{ user.email if user else '' }}" required>
+                <div class="invalid-feedback">请输入有效的邮箱地址</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="password" class="form-label">{{ '密码' if not user else '新密码' }} {% if not user %}<span class="text-danger">*</span>{% endif %}</label>
+                <input type="password" class="form-control" id="password" name="password" {% if not user %}required{% endif %}>
+                <div class="invalid-feedback">请输入密码</div>
+                {% if user %}
+                <div class="form-text">如不修改密码请留空</div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3">
+                <label for="department" class="form-label">部门</label>
+                <input type="text" class="form-control" id="department" name="department" value="{{ user.department if user and user.department else '' }}">
+            </div>
+            
+            <div class="mb-3">
+                <label for="phone" class="form-label">电话</label>
+                <input type="text" class="form-control" id="phone" name="phone" value="{{ user.phone if user and user.phone else '' }}">
+            </div>
+            
+            <div class="mb-3">
+                <label for="role_id" class="form-label">角色 <span class="text-danger">*</span></label>
+                <select class="form-select" id="role_id" name="role_id" required>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}" {% if user and user.role_id == role.id %}selected{% endif %}>{{ role.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="invalid-feedback">请选择角色</div>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">取消</a>
+                <button type="submit" class="btn btn-primary">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 表单验证
+    (function() {
+        'use strict';
+        
+        var forms = document.querySelectorAll('.needs-validation');
+        
+        Array.prototype.slice.call(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+</script>
+{% endblock %} 

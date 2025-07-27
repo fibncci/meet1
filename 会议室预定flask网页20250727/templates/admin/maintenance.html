@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}维护计划管理{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>维护计划管理</h1>
+        <a href="{{ url_for('new_maintenance') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 添加维护计划
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card">
+        <div class="card-header">
+            维护计划列表
+        </div>
+        <div class="card-body">
+            {% if maintenances %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>会议室</th>
+                                <th>开始日期</th>
+                                <th>结束日期</th>
+                                <th>维护原因</th>
+                                <th>创建人</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for maintenance in maintenances %}
+                                <tr>
+                                    <td>{{ maintenance.id }}</td>
+                                    <td>{{ maintenance.room.name }}</td>
+                                    <td>{{ maintenance.start_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ maintenance.end_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ maintenance.reason }}</td>
+                                    <td>{{ maintenance.creator.username }}</td>
+                                    <td>{{ maintenance.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('edit_maintenance', id=maintenance.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-edit"></i> 编辑
+                                        </a>
+                                        <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ maintenance.id }}">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                        
+                                        <!-- 删除确认模态框 -->
+                                        <div class="modal fade" id="deleteModal{{ maintenance.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ maintenance.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="deleteModalLabel{{ maintenance.id }}">确认删除</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        确定要删除"{{ maintenance.room.name }}"的维护计划吗？该操作不可撤销。
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                                        <form action="{{ url_for('delete_maintenance', id=maintenance.id) }}" method="post" class="d-inline">
+                                                            <button type="submit" class="btn btn-danger">确认删除</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    目前没有维护计划记录。点击"添加维护计划"按钮创建一个。
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

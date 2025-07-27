@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ room.name }} - 会议室预定系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">{{ room.name }} 详情</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-info-circle"></i> 基本信息</h5>
+                        <ul class="list-unstyled">
+                            <li><strong>位置:</strong> {{ room.location }}</li>
+                            <li><strong>容量:</strong> {{ room.capacity }}人</li>
+                            <li><strong>状态:</strong> 
+                                {% if room.is_active %}
+                                <span class="badge bg-success">可用</span>
+                                {% else %}
+                                <span class="badge bg-danger">不可用</span>
+                                {% endif %}
+                            </li>
+                        </ul>
+                        
+                        {% if room.description %}
+                        <h5 class="mt-3"><i class="bi bi-card-text"></i> 描述</h5>
+                        <p>{{ room.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-tools"></i> 设备</h5>
+                        {% if room.equipments %}
+                        <ul class="list-unstyled">
+                            {% for re in room.equipments %}
+                            <li>
+                                <i class="bi bi-check-circle text-success"></i> 
+                                {{ re.equipment.name }}
+                                {% if re.quantity > 1 %}({{ re.quantity }}){% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="text-muted">无可用设备</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if current_user.is_authenticated %}
+                <div class="mt-3 d-grid gap-2">
+                    <a href="{{ url_for('reserve') }}?room_id={{ room.id }}" class="btn btn-primary">预订此会议室</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if maintenances %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> 维护计划</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for maintenance in maintenances %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">维护时间: {{ maintenance.start_date }} 至 {{ maintenance.end_date }}</h6>
+                        </div>
+                        <p class="mb-1">{{ maintenance.reason }}</p>
+                        <small class="text-muted">由 {{ maintenance.creator.username }} 安排于 {{ maintenance.created_at.strftime('%Y-%m-%d') }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-calendar-event"></i> 今日预订情况</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="text-center mb-3">{{ today.strftime('%Y年%m月%d日') }}</h6>
+                
+                {% if reservations %}
+                <div class="list-group">
+                    {% for reservation in reservations %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ reservation.title }}</h6>
+                            <small>{{ reservation.format_time() }}</small>
+                        </div>
+                        <p class="mb-1">
+                            <small>
+                                <i class="bi bi-person"></i> {{ reservation.user.username }} | 
+                                <i class="bi bi-people"></i> {{ reservation.attendees }}人
+                            </small>
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">今日暂无预订</p>
+                </div>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <a href="{{ url_for('calendar_view') }}?room_id={{ room.id }}" class="btn btn-outline-info d-block">查看完整日历</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+/* 全局样式 */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.container {
+    flex: 1;
+}
+
+/* 导航栏样式 */
+.navbar-brand {
+    font-weight: bold;
+}
+
+/* 卡片样式 */
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-top-left-radius: 0.5rem !important;
+    border-top-right-radius: 0.5rem !important;
+}
+
+/* 表格样式 */
+.table > :not(caption) > * > * {
+    padding: 0.75rem 1rem;
+}
+
+/* 表单样式 */
+.form-label {
+    font-weight: 500;
+}
+
+/* 按钮样式 */
+.btn {
+    border-radius: 0.25rem;
+}
+
+/* 日历样式 */
+.fc .fc-toolbar-title {
+    font-size: 1.5rem;
+}
+
+.fc-event {
+    border-radius: 3px;
+    font-size: 0.85em;
+}
+
+/* 自定义动画 */
+.fade-in {
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 管理面板样式 */
+.dashboard-card {
+    transition: transform 0.2s;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .fc .fc-toolbar {
+        flex-direction: column;
+    }
+    
+    .fc .fc-toolbar-title {
+        margin-bottom: 0.5rem;
+    }
+}

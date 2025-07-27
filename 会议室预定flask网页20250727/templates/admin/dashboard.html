@@ -1,0 +1,283 @@
+{% extends 'base.html' %}
+
+{% block title %}管理仪表盘 - 会议室预定系统{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">管理仪表盘</h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="card text-white bg-primary h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">今日预订</h6>
+                                <h2 class="mb-0">{{ today_reservations }}</h2>
+                            </div>
+                            <i class="bi bi-calendar-check fs-1"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <a href="{{ url_for('admin_reservations') }}" class="text-white">查看详情 <i class="bi bi-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-4">
+                <div class="card text-white bg-success h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">本周预订</h6>
+                                <h2 class="mb-0">{{ week_reservations }}</h2>
+                            </div>
+                            <i class="bi bi-calendar-week fs-1"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <a href="{{ url_for('admin_reservations') }}" class="text-white">查看详情 <i class="bi bi-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-4">
+                <div class="card text-white bg-info h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">会议室数量</h6>
+                                <h2 class="mb-0">{{ rooms|length }}</h2>
+                            </div>
+                            <i class="bi bi-building fs-1"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <a href="{{ url_for('admin_rooms') }}" class="text-white">查看详情 <i class="bi bi-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-4">
+                <div class="card text-white bg-secondary h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">注册用户</h6>
+                                <h2 class="mb-0">{{ total_users }}</h2>
+                            </div>
+                            <i class="bi bi-people fs-1"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <a href="{{ url_for('admin_users') }}" class="text-white">查看详情 <i class="bi bi-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">会议室使用情况</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="roomUsageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">快速操作</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <a href="{{ url_for('admin_rooms') }}" class="btn btn-outline-primary w-100 h-100 d-flex flex-column justify-content-center align-items-center p-3">
+                                    <i class="bi bi-building fs-2 mb-2"></i>
+                                    管理会议室
+                                </a>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <a href="{{ url_for('admin_reservations') }}" class="btn btn-outline-success w-100 h-100 d-flex flex-column justify-content-center align-items-center p-3">
+                                    <i class="bi bi-calendar-check fs-2 mb-2"></i>
+                                    管理预订
+                                </a>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <a href="{{ url_for('admin_maintenance') }}" class="btn btn-outline-warning w-100 h-100 d-flex flex-column justify-content-center align-items-center p-3">
+                                    <i class="bi bi-tools fs-2 mb-2"></i>
+                                    维护管理
+                                </a>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <a href="{{ url_for('admin_reports') }}" class="btn btn-outline-info w-100 h-100 d-flex flex-column justify-content-center align-items-center p-3">
+                                    <i class="bi bi-bar-chart fs-2 mb-2"></i>
+                                    统计报表
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">最近预订</h5>
+                        <a href="{{ url_for('admin_reservations') }}" class="btn btn-sm btn-outline-primary">查看全部</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>预订ID</th>
+                                        <th>会议主题</th>
+                                        <th>日期</th>
+                                        <th>时间</th>
+                                        <th>会议室</th>
+                                        <th>预订人</th>
+                                        <th>状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentReservations">
+                                    <!-- 通过AJAX加载 -->
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 会议室使用情况图表
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('roomUsageChart').getContext('2d');
+        
+        const roomUsageData = {
+            labels: [{% for item in room_usage %}'{{ item.name }}',{% endfor %}],
+            datasets: [{
+                label: '本周预订次数',
+                data: [{% for item in room_usage %}{{ item.count }},{% endfor %}],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.6)',
+                    'rgba(255, 99, 132, 0.6)',
+                    'rgba(255, 206, 86, 0.6)',
+                    'rgba(75, 192, 192, 0.6)',
+                    'rgba(153, 102, 255, 0.6)',
+                    'rgba(255, 159, 64, 0.6)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+        
+        const roomUsageChart = new Chart(ctx, {
+            type: 'bar',
+            data: roomUsageData,
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: '本周各会议室使用情况'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 加载最近预订
+        fetch('/api/recent_reservations')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('recentReservations');
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <p class="text-muted mb-0">暂无预订记录</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                
+                data.forEach(res => {
+                    let statusBadge = '';
+                    if (res.status === 'confirmed') {
+                        statusBadge = '<span class="badge bg-success">已确认</span>';
+                    } else if (res.status === 'canceled') {
+                        statusBadge = '<span class="badge bg-danger">已取消</span>';
+                    } else if (res.status === 'completed') {
+                        statusBadge = '<span class="badge bg-info">已完成</span>';
+                    }
+                    
+                    html += `
+                        <tr>
+                            <td>${res.id}</td>
+                            <td>${res.title}</td>
+                            <td>${res.date}</td>
+                            <td>${res.start_time} - ${res.end_time}</td>
+                            <td>${res.room_name}</td>
+                            <td>${res.username}</td>
+                            <td>${statusBadge}</td>
+                        </tr>
+                    `;
+                });
+                
+                tbody.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error fetching recent reservations:', error);
+                document.getElementById('recentReservations').innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <p class="text-danger mb-0">加载数据出错</p>
+                        </td>
+                    </tr>
+                `;
+            });
+    });
+</script>
+{% endblock %}

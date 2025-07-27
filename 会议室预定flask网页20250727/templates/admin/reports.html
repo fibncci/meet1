@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+
+{% block title %}统计报表 - 会议室预定系统{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">统计报表</h4>
+    </div>
+    <div class="card-body">
+        <!-- 报表类型选择 -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">报表设置</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" id="reportForm">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="type" class="form-label">报表类型</label>
+                            <select class="form-select" id="type" name="type">
+                                <option value="room_usage" {% if report_type == 'room_usage' %}selected{% endif %}>会议室使用情况</option>
+                                <option value="user_activity" {% if report_type == 'user_activity' %}selected{% endif %}>用户活动统计</option>
+                                <option value="time_distribution" {% if report_type == 'time_distribution' %}selected{% endif %}>预订时间分布</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="date_from" class="form-label">开始日期</label>
+                            <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="date_to" class="form-label">结束日期</label>
+                            <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">生成报表</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 报表内容 -->
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    {% if report_type == 'room_usage' %}
+                    会议室使用情况
+                    {% elif report_type == 'user_activity' %}
+                    用户活动统计
+                    {% elif report_type == 'time_distribution' %}
+                    预订时间分布
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill"></i> 报表时间范围: {{ date_from }} 至 {{ date_to }}
+                </div>
+                
+                {% if report_type == 'room_usage' %}
+                <!-- 会议室使用情况报表 -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <canvas id="roomUsageChart"></canvas>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>会议室</th>
+                                        <th>预订次数</th>
+                                        <th>使用时长(小时)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in report_data %}
+                                    <tr>
+                                        <td>{{ item.room_name }}</td>
+                                        <td>{{ item.total_reservations }}</td>
+                                        <td>{{ item.total_hours }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% elif report_type == 'user_activity' %}
+                <!-- 用户活动统计报表 -->
+                <div class="table-responsive">
+                    <table class="table table-hover" id="userActivityTable">
+                        <thead>
+                            <tr>
+                                <th>用户名</th>
+                                <th>部门</th>
+                                <th>预订总数</th>
+                                <th>取消数量</th>
+                                <th>取消率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in report_data %}
+                            <tr>
+                                <td>{{ item.username }}</td>
+                                <td>{{ item.department }}</td>
+                                <td>{{ item.total_reservations }}</td>
+                                <td>{{ item.canceled_reservations }}</td>
+                                <td>
+                                    {% if item.total_reservations > 0 %}
+                                    {{ (item.canceled_reservations / item.total_reservations * 100)|round|int }}%
+                                    {% else %}
+                                    0%
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4">
+                    <canvas id="userActivityChart"></canvas>
+                </div>
+                {% elif report_type == 'time_distribution' %}
+                <!-- 预订时间分布报表 -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">按小时分布</h5>
+                        <canvas id="hourDistributionChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3">按星期分布</h5>
+                        <canvas id="weekdayDistributionChart"></canvas>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if report_type == 'room_usage' %}
+        // 会议室使用情况图表
+        const ctx = document.getElementById('roomUsageChart').getContext('2d');
+        
+        const roomUsageData = {
+            labels: [{% for item in report_data %}'{{ item.room_name }}',{% endfor %}],
+            datasets: [{
+                label: '预订次数',
+                data: [{% for item in report_data %}{{ item.total_reservations }},{% endfor %}],
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }, {
+                label: '使用时长(小时)',
+                data: [{% for item in report_data %}{{ item.total_hours }},{% endfor %}],
+                backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1,
+                yAxisID: 'y1'
+            }]
+        };
+        
+        const roomUsageChart = new Chart(ctx, {
+            type: 'bar',
+            data: roomUsageData,
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '预订次数'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '使用时长(小时)'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+        {% elif report_type == 'user_activity' %}
+        // 用户活动统计图表
+        const ctx = document.getElementById('userActivityChart').getContext('2d');
+        
+        const userNames = [{% for item in report_data %}'{{ item.username }}',{% endfor %}];
+        const totalReservations = [{% for item in report_data %}{{ item.total_reservations }},{% endfor %}];
+        const canceledReservations = [{% for item in report_data %}{{ item.canceled_reservations }},{% endfor %}];
+        
+        const userActivityChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: userNames,
+                datasets: [{
+                    label: '总预订数',
+                    data: totalReservations,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }, {
+                    label: '取消数量',
+                    data: canceledReservations,
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+        {% elif report_type == 'time_distribution' %}
+        // 按小时分布图表
+        const hourCtx = document.getElementById('hourDistributionChart').getContext('2d');
+        
+        const hourDistributionChart = new Chart(hourCtx, {
+            type: 'bar',
+            data: {
+                labels: [{% for item in hour_data %}'{{ item.hour }}',{% endfor %}],
+                datasets: [{
+                    label: '预订数量',
+                    data: [{% for item in hour_data %}{{ item.count }},{% endfor %}],
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 按星期分布图表
+        const weekdayCtx = document.getElementById('weekdayDistributionChart').getContext('2d');
+        
+        const weekdayDistributionChart = new Chart(weekdayCtx, {
+            type: 'pie',
+            data: {
+                labels: [{% for item in weekday_data %}'{{ item.weekday }}',{% endfor %}],
+                datasets: [{
+                    label: '预订数量',
+                    data: [{% for item in weekday_data %}{{ item.count }},{% endfor %}],
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(255, 206, 86, 0.6)',
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(153, 102, 255, 0.6)',
+                        'rgba(255, 159, 64, 0.6)',
+                        'rgba(201, 203, 207, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(201, 203, 207, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        {% endif %}
+    });
+</script>
+{% endblock %}

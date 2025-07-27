@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+
+{% block title %}预订详情 - 会议室预定系统{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">预订详情</h4>
+        <a href="{{ url_for('my_reservations') }}" class="btn btn-light btn-sm">
+            <i class="bi bi-arrow-left"></i> 返回我的预订
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">会议信息</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>会议主题</span>
+                                <span class="fw-bold">{{ reservation.title }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>日期</span>
+                                <span>{{ reservation.date.strftime('%Y-%m-%d') }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>时间</span>
+                                <span>{{ reservation.format_time() }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>参会人数</span>
+                                <span>{{ reservation.attendees }}人</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>状态</span>
+                                {% if reservation.status == 'confirmed' %}
+                                <span class="badge bg-success">已确认</span>
+                                {% elif reservation.status == 'canceled' %}
+                                <span class="badge bg-danger">已取消</span>
+                                {% elif reservation.status == 'completed' %}
+                                <span class="badge bg-info">已完成</span>
+                                {% endif %}
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>预订时间</span>
+                                <span>{{ reservation.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                {% if reservation.can_cancel() %}
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">取消预订</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>如果您不再需要此会议室，请取消预订，以便其他人使用。</p>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                            取消预订
+                        </button>
+                        
+                        <!-- 取消预订确认框 -->
+                        <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="cancelModalLabel">确认取消预订</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>您确定要取消此预订吗？此操作不可撤销！</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                                        <form action="{{ url_for('cancel_reservation', id=reservation.id) }}" method="post">
+                                            <button type="submit" class="btn btn-danger">确认取消</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                                
+                <!-- 会议文档部分 -->
+                <div class="card">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">会议文档</h5>
+                        {% if reservation.status == 'confirmed' %}
+                        <div>
+                            <a href="{{ url_for('download_signin_sheet', id=reservation.id) }}" class="btn btn-sm btn-success me-2">
+                                <i class="bi bi-file-earmark-text"></i> 下载签到表
+                            </a>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#uploadDocModal">
+                                <i class="bi bi-upload"></i> 上传文档
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if reservation.documents %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>文件名</th>
+                                        <th>大小</th>
+                                        <th>上传时间</th>
+                                        <th>上传人</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in reservation.documents %}
+                                    <tr>
+                                        <td>{{ doc.filename }}</td>
+                                        <td>{{ (doc.file_size / 1024)|round(1) }} KB</td>
+                                        <td>{{ doc.upload_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>{{ doc.uploader.username }}</td>
+                                        <td>
+                                            <a href="{{ url_for('download_document', id=doc.id) }}" class="btn btn-sm btn-success">
+                                                <i class="bi bi-download"></i> 下载
+                                            </a>
+                                            {% if doc.uploaded_by == current_user.id or current_user.is_admin() %}
+                                            <button type="button" class="btn btn-sm btn-danger" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteDocModal" 
+                                                    data-bs-doc-id="{{ doc.id }}"
+                                                    data-bs-doc-name="{{ doc.filename }}">
+                                                <i class="bi bi-trash"></i> 删除
+                                            </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center text-muted">暂无会议文档</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">会议室信息</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>会议室</span>
+                                <span class="fw-bold">{{ reservation.room.name }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>位置</span>
+                                <span>{{ reservation.room.location }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>容量</span>
+                                <span>{{ reservation.room.capacity }}人</span>
+                            </li>
+                        </ul>
+                        
+                        {% if reservation.room.equipments %}
+                        <div class="mt-3">
+                            <h6>可用设备：</h6>
+                            <ul class="list-group list-group-flush">
+                                {% for re in reservation.room.equipments %}
+                                <li class="list-group-item">
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    {{ re.equipment.name }}
+                                    {% if re.quantity > 1 %}({{ re.quantity }}){% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mt-3">
+                            <a href="{{ url_for('room_detail', id=reservation.room.id) }}" class="btn btn-outline-primary">查看会议室详情</a>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if reservation.description %}
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">会议描述</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">{{ reservation.description }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 上传文档模态框 -->
+<div class="modal fade" id="uploadDocModal" tabindex="-1" aria-labelledby="uploadDocModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadDocModalLabel">上传会议文档</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('upload_document', id=reservation.id) }}" method="post" enctype="multipart/form-data" id="uploadDocForm">
+                    <div class="mb-3">
+                        <label for="docFile" class="form-label">选择文件</label>
+                        <input class="form-control" type="file" id="docFile" name="document" required>
+                        <div class="form-text">支持的文件格式：PDF, Word, Excel, PowerPoint, TXT</div>
+                        <div class="form-text">最大文件大小：10MB</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="submit" form="uploadDocForm" class="btn btn-primary">上传</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除文档确认框 -->
+<div class="modal fade" id="deleteDocModal" tabindex="-1" aria-labelledby="deleteDocModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteDocModalLabel">确认删除文档</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>您确定要删除文档 <span id="docNameToDelete"></span> 吗？此操作不可恢复！</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form id="deleteDocForm" action="" method="post">
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 删除文档确认框处理
+    const deleteDocModal = document.getElementById('deleteDocModal');
+    if (deleteDocModal) {
+        deleteDocModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const docId = button.getAttribute('data-bs-doc-id');
+            const docName = button.getAttribute('data-bs-doc-name');
+            
+            // 设置文档名称
+            document.getElementById('docNameToDelete').textContent = docName;
+            
+            // 设置表单提交地址
+            const deleteForm = document.getElementById('deleteDocForm');
+            deleteForm.action = "{{ url_for('delete_document', id=0) }}".replace('0', docId);
+        });
+    }
+</script>
+{% endblock %}

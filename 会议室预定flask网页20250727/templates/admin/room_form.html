@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ '编辑会议室' if room else '添加会议室' }} - 会议室预定系统{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">{{ '编辑会议室' if room else '添加会议室' }}</h4>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">会议室名称</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ room.name if room else '' }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="location" class="form-label">位置</label>
+                        <input type="text" class="form-control" id="location" name="location" value="{{ room.location if room else '' }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="capacity" class="form-label">容量（人数）</label>
+                        <input type="number" class="form-control" id="capacity" name="capacity" value="{{ room.capacity if room else '' }}" min="1" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="4">{{ room.description if room else '' }}</textarea>
+                    </div>
+                    
+                    {% if room %}
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if room.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">启用会议室</label>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">设备配置</h5>
+                        </div>
+                        <div class="card-body">
+                            {% for equipment in equipments %}
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="equipment_{{ equipment.id }}" name="equipment_{{ equipment.id }}" 
+                                       {% if equipment.id in room_equipments %}checked{% endif %}>
+                                <label class="form-check-label" for="equipment_{{ equipment.id }}">{{ equipment.name }}</label>
+                                
+                                <div class="mt-2 ms-4 equipment-quantity" id="quantity_container_{{ equipment.id }}" style="{{ 'display:none;' if equipment.id not in room_equipments else '' }}">
+                                    <label for="quantity_{{ equipment.id }}" class="form-label">数量:</label>
+                                    <input type="number" class="form-control form-control-sm" id="quantity_{{ equipment.id }}" name="quantity_{{ equipment.id }}" 
+                                           value="{{ room_equipments[equipment.id] if equipment.id in room_equipments else 1 }}" min="1" style="width: 80px;">
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">保存</button>
+                <a href="{{ url_for('admin_rooms') }}" class="btn btn-outline-secondary ms-2">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 设备数量显示/隐藏控制
+    document.addEventListener('DOMContentLoaded', function() {
+        const equipmentCheckboxes = document.querySelectorAll('input[id^="equipment_"]');
+        
+        equipmentCheckboxes.forEach(checkbox => {
+            const equipmentId = checkbox.id.split('_')[1];
+            const quantityContainer = document.getElementById(`quantity_container_${equipmentId}`);
+            
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    quantityContainer.style.display = 'block';
+                } else {
+                    quantityContainer.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

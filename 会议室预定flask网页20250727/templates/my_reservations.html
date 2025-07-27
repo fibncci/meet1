@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}我的预订 - 会议室预定系统{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">我的预订</h4>
+        <a href="{{ url_for('reserve') }}" class="btn btn-light">预订会议室</a>
+    </div>
+    <div class="card-body">
+        <ul class="nav nav-tabs mb-3" id="reservationTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab" aria-controls="upcoming" aria-selected="true">
+                    即将到来 <span class="badge bg-primary">{{ upcoming|length }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab" aria-controls="past" aria-selected="false">
+                    历史预订 <span class="badge bg-secondary">{{ past|length }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="canceled-tab" data-bs-toggle="tab" data-bs-target="#canceled" type="button" role="tab" aria-controls="canceled" aria-selected="false">
+                    已取消 <span class="badge bg-danger">{{ canceled|length }}</span>
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="reservationTabContent">
+            <div class="tab-pane fade show active" id="upcoming" role="tabpanel" aria-labelledby="upcoming-tab">
+                {% if upcoming %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>会议主题</th>
+                                <th>日期</th>
+                                <th>时间</th>
+                                <th>会议室</th>
+                                <th>参会人数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for res in upcoming %}
+                            <tr>
+                                <td>{{ res.title }}</td>
+                                <td>{{ res.date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ res.format_time() }}</td>
+                                <td>{{ res.room.name }}</td>
+                                <td>{{ res.attendees }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('reservation_detail', id=res.id) }}" class="btn btn-outline-primary">详情</a>
+                                        {% if res.can_cancel() %}
+                                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal{{ res.id }}">取消</button>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- 取消预订确认框 -->
+                                    <div class="modal fade" id="cancelModal{{ res.id }}" tabindex="-1" aria-labelledby="cancelModalLabel{{ res.id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="cancelModalLabel{{ res.id }}">确认取消预订</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>您确定要取消以下预订吗？</p>
+                                                    <ul class="list-unstyled">
+                                                        <li><strong>会议主题:</strong> {{ res.title }}</li>
+                                                        <li><strong>日期时间:</strong> {{ res.date.strftime('%Y-%m-%d') }} {{ res.format_time() }}</li>
+                                                        <li><strong>会议室:</strong> {{ res.room.name }}</li>
+                                                    </ul>
+                                                    <p class="text-danger">此操作不可撤销！</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                                                    <form action="{{ url_for('cancel_reservation', id=res.id) }}" method="post">
+                                                        <button type="submit" class="btn btn-danger">确认取消</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <p class="text-muted mb-3">您没有即将到来的预订</p>
+                    <a href="{{ url_for('reserve') }}" class="btn btn-primary">立即预订会议室</a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="tab-pane fade" id="past" role="tabpanel" aria-labelledby="past-tab">
+                {% if past %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>会议主题</th>
+                                <th>日期</th>
+                                <th>时间</th>
+                                <th>会议室</th>
+                                <th>参会人数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for res in past %}
+                            <tr>
+                                <td>{{ res.title }}</td>
+                                <td>{{ res.date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ res.format_time() }}</td>
+                                <td>{{ res.room.name }}</td>
+                                <td>{{ res.attendees }}</td>
+                                <td>
+                                    <a href="{{ url_for('reservation_detail', id=res.id) }}" class="btn btn-sm btn-outline-primary">详情</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">没有历史预订记录</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="tab-pane fade" id="canceled" role="tabpanel" aria-labelledby="canceled-tab">
+                {% if canceled %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>会议主题</th>
+                                <th>日期</th>
+                                <th>时间</th>
+                                <th>会议室</th>
+                                <th>参会人数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for res in canceled %}
+                            <tr>
+                                <td>{{ res.title }}</td>
+                                <td>{{ res.date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ res.format_time() }}</td>
+                                <td>{{ res.room.name }}</td>
+                                <td>{{ res.attendees }}</td>
+                                <td>
+                                    <a href="{{ url_for('reservation_detail', id=res.id) }}" class="btn btn-sm btn-outline-primary">详情</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">没有已取消的预订</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

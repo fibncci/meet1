@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}日历视图 - 会议室预定系统{% endblock %}
+
+{% block styles %}
+<style>
+    #calendar {
+        min-height: 600px;
+    }
+    .fc-event {
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">会议室日历</h4>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('reserve') }}" class="btn btn-light">预订会议室</a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">会议室</span>
+                    <select id="roomFilter" class="form-select">
+                        <option value="">全部会议室</option>
+                        {% for room in rooms %}
+                        <option value="{{ room.id }}">{{ room.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div id="calendar"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        const roomFilter = document.getElementById('roomFilter');
+        
+        // 获取URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room_id');
+        
+        // 如果URL中有room_id参数，设置过滤器
+        if (roomId) {
+            roomFilter.value = roomId;
+        }
+        
+        // 初始化日历
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            locale: 'zh-cn',
+            firstDay: 1, // 周一为一周的第一天
+            buttonText: {
+                today: '今天',
+                month: '月',
+                week: '周',
+                day: '日'
+            },
+            allDayText: '全天',
+            navLinks: true,
+            dayMaxEvents: true,
+            slotMinTime: '08:00:00',
+            slotMaxTime: '20:00:00',
+            businessHours: {
+                daysOfWeek: [1, 2, 3, 4, 5, 6, 0], // 周一到周日
+                startTime: '08:00',
+                endTime: '20:00',
+            },
+            eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            },
+            events: function(info, successCallback, failureCallback) {
+                const startDate = info.startStr;
+                const endDate = info.endStr;
+                const selectedRoomId = roomFilter.value;
+                
+                const url = `/calendar_data?year=${info.start.getFullYear()}&month=${info.start.getMonth() + 1}${selectedRoomId ? '&room_id=' + selectedRoomId : ''}`;
+                
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        successCallback(data);
+                    })
+                    .catch(error => {
+                        failureCallback(error);
+                    });
+            },
+            eventClick: function(info) {
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                    info.jsEvent.preventDefault(); // 阻止默认操作
+                }
+            }
+        });
+        
+        calendar.render();
+        
+        // 监听会议室过滤器变化
+        roomFilter.addEventListener('change', function() {
+            calendar.refetchEvents();
+            
+            // 更新URL参数
+            const url = new URL(window.location);
+            if (this.value) {
+                url.searchParams.set('room_id', this.value);
+            } else {
+                url.searchParams.delete('room_id');
+            }
+            window.history.pushState({}, '', url);
+        });
+    });
+</script>
+{% endblock %}

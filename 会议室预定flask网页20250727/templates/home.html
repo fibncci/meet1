@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}首页 - 会议室预定系统{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title">欢迎使用会议室预定系统</h2>
+                {% if not current_user.is_authenticated %}
+                <div class="mt-4">
+                    <a href="{{ url_for('login') }}" class="btn btn-primary me-2">登录</a>
+                    <a href="{{ url_for('register') }}" class="btn btn-outline-primary">注册</a>
+                </div>
+                {% else %}
+                <div class="mt-4">
+                    <a href="{{ url_for('reserve') }}" class="btn btn-primary me-2">预订会议室</a>
+                    <a href="{{ url_for('my_reservations') }}" class="btn btn-outline-primary">我的预订</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">今日日期</h5>
+            </div>
+            <div class="card-body">
+                <h3 class="text-center">{{ today.strftime('%Y年%m月%d日') }}</h3>
+                <p class="text-center">{{ ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'][today.weekday()] }}</p>
+                <hr>
+                <div class="d-grid">
+                    <a href="{{ url_for('calendar_view') }}" class="btn btn-outline-primary">查看日历</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">可用会议室</h5>
+                <a href="{{ url_for('room_list') }}" class="btn btn-sm btn-outline-primary">查看全部</a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for room in rooms %}
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ room.name }}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">{{ room.location }}</h6>
+                                <p class="card-text">
+                                    <small>
+                                        <i class="bi bi-people"></i> 容量: {{ room.capacity }}人<br>
+                                        {% set equipment_names = room.get_equipment_list()|map(attribute='name')|join(', ') %}
+                                        <i class="bi bi-tools"></i> 设备: {{ equipment_names or '无' }}
+                                    </small>
+                                </p>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('room_detail', id=room.id) }}" class="btn btn-sm btn-outline-primary">详情</a>
+                                    {% if current_user.is_authenticated %}
+                                    <a href="{{ url_for('reserve') }}?room_id={{ room.id }}" class="btn btn-primary">预订此会议室</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="card-title mb-0">今日即将举行的会议</h5>
+            </div>
+            <div class="card-body">
+                {% if upcoming_reservations %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>会议主题</th>
+                                <th>会议室</th>
+                                <th>预订人</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reservation in upcoming_reservations %}
+                            <tr>
+                                <td>{{ reservation.format_time() }}</td>
+                                <td>{{ reservation.title }}</td>
+                                <td>{{ reservation.room.name }}</td>
+                                <td>{{ reservation.user.username }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <p class="text-muted mb-0">今日暂无会议安排</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}预订管理 - 会议室预定系统{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">预订管理</h4>
+    </div>
+    <div class="card-body">
+        <!-- 筛选条件 -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">筛选条件</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" id="filterForm">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="status" class="form-label">状态</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="all" {% if status == 'all' %}selected{% endif %}>全部</option>
+                                <option value="confirmed" {% if status == 'confirmed' %}selected{% endif %}>已确认</option>
+                                <option value="canceled" {% if status == 'canceled' %}selected{% endif %}>已取消</option>
+                                <option value="completed" {% if status == 'completed' %}selected{% endif %}>已完成</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="room_id" class="form-label">会议室</label>
+                            <select class="form-select" id="room_id" name="room_id">
+                                <option value="all" {% if room_id == 'all' %}selected{% endif %}>全部</option>
+                                {% for room in rooms %}
+                                <option value="{{ room.id }}" {% if room_id == room.id|string %}selected{% endif %}>{{ room.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="date_from" class="form-label">开始日期</label>
+                            <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="date_to" class="form-label">结束日期</label>
+                            <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <button type="submit" class="btn btn-primary">应用筛选</button>
+                            <button type="button" id="resetBtn" class="btn btn-outline-secondary ms-2">重置</button>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('export_reservations') }}?{{ request.query_string.decode() }}" class="btn btn-success">
+                                <i class="bi bi-download"></i> 导出CSV
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 预订列表 -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>会议主题</th>
+                        <th>日期</th>
+                        <th>时间</th>
+                        <th>会议室</th>
+                        <th>预订人</th>
+                        <th>参会人数</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reservation in reservations %}
+                    <tr>
+                        <td>{{ reservation.id }}</td>
+                        <td>{{ reservation.title }}</td>
+                        <td>{{ reservation.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ reservation.format_time() }}</td>
+                        <td>{{ reservation.room.name }}</td>
+                        <td>{{ reservation.user.username }}</td>
+                        <td>{{ reservation.attendees }}</td>
+                        <td>
+                            {% if reservation.status == 'confirmed' %}
+                            <span class="badge bg-success">已确认</span>
+                            {% elif reservation.status == 'canceled' %}
+                            <span class="badge bg-danger">已取消</span>
+                            {% elif reservation.status == 'completed' %}
+                            <span class="badge bg-info">已完成</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('reservation_detail', id=reservation.id) }}" class="btn btn-outline-primary">详情</a>
+                                {% if reservation.status == 'confirmed' %}
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal{{ reservation.id }}">
+                                    取消
+                                </button>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- 取消预订确认框 -->
+                            {% if reservation.status == 'confirmed' %}
+                            <div class="modal fade" id="cancelModal{{ reservation.id }}" tabindex="-1" aria-labelledby="cancelModalLabel{{ reservation.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="cancelModalLabel{{ reservation.id }}">确认取消预订</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>您确定要取消以下预订吗？</p>
+                                            <ul class="list-unstyled">
+                                                <li><strong>会议主题:</strong> {{ reservation.title }}</li>
+                                                <li><strong>日期时间:</strong> {{ reservation.date.strftime('%Y-%m-%d') }} {{ reservation.format_time() }}</li>
+                                                <li><strong>会议室:</strong> {{ reservation.room.name }}</li>
+                                                <li><strong>预订人:</strong> {{ reservation.user.username }}</li>
+                                            </ul>
+                                            <div class="alert alert-warning">
+                                                <i class="bi bi-exclamation-triangle-fill"></i> 此操作将通知预订用户，且不可撤销！
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                                            <form action="{{ url_for('admin_cancel_reservation', id=reservation.id) }}" method="post">
+                                                <button type="submit" class="btn btn-danger">确认取消</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if not reservations %}
+        <div class="text-center py-5">
+            <p class="text-muted">没有找到符合条件的预订记录</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 重置筛选条件
+    document.getElementById('resetBtn').addEventListener('click', function() {
+        document.getElementById('status').value = 'all';
+        document.getElementById('room_id').value = 'all';
+        document.getElementById('date_from').value = '';
+        document.getElementById('date_to').value = '';
+        document.getElementById('filterForm').submit();
+    });
+</script>
+{% endblock %}
